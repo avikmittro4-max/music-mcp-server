@@ -29,6 +29,37 @@ if (!XIAOZHI_ENDPOINT) {
   process.exit(1);
 }
 
+// --- Saved songs playlist ---
+// Add more songs here as {names: [...aliases in Bangla/English], url: "direct mp3 link"}.
+// Google Drive share links are converted to a direct-download form.
+function toDirectDriveLink(shareUrl) {
+  const match = shareUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return shareUrl;
+  const fileId = match[1];
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
+const SAVED_SONGS = [
+  {
+    names: ["বোঝেনা সে বোঝেনা", "Bojhena Se Bojhena", "Bojhena Se Bojhenaa", "Bujhena Se Bujhena"],
+    url: toDirectDriveLink(
+      "https://drive.google.com/file/d/1A_8FPZtsscBAV-jBA_ztCvbwKyi8SkRD/view?usp=drivesdk"
+    ),
+  },
+];
+
+function findSavedSong(query) {
+  const q = query.trim().toLowerCase();
+  for (const song of SAVED_SONGS) {
+    for (const name of song.names) {
+      if (name.toLowerCase().includes(q) || q.includes(name.toLowerCase())) {
+        return song;
+      }
+    }
+  }
+  return null;
+}
+
 function buildServer() {
   const server = new McpServer({
     name: "music-search-mcp",
@@ -99,6 +130,39 @@ function buildServer() {
       } catch (err) {
         return { content: [{ type: "text", text: `Playback lookup failed: ${err.message}` }], isError: true };
       }
+    }
+  );
+
+  server.registerTool(
+    "play_saved_song",
+    {
+      title: "Play Saved Song",
+      description:
+        "Play a song from the saved/uploaded playlist by name (Bangla or English). Use this FIRST before searching YouTube, since these are pre-approved songs the device can actually play.",
+      inputSchema: {
+        query: z.string().describe("Song name in Bangla or English, e.g. 'Bojhena Se Bojhena' or 'বোঝেনা সে বোঝেনা'"),
+      },
+    },
+    async ({ query }) => {
+      const song = findSavedSong(query);
+      if (!song) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `"${query}" is not in the saved playlist yet. Try search_music to find it on YouTube instead.`,
+            },
+          ],
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Playing saved song: ${song.names[0]}\nURL: ${song.url}`,
+          },
+        ],
+      };
     }
   );
 
