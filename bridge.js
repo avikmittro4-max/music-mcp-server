@@ -1,7 +1,22 @@
+import http from "http";
 import WebSocket from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import yts from "yt-search";
+
+// --- Dummy HTTP server so Render's free "Web Service" port-scan passes ---
+// Render's free tier requires an open port for Web Services. Our real work
+// happens over an outbound WebSocket connection, so this server exists only
+// to satisfy that check and does nothing else.
+const PORT = process.env.PORT || 3000;
+http
+  .createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("Music MCP bridge is running.\n");
+  })
+  .listen(PORT, () => {
+    console.log(`Dummy HTTP server listening on port ${PORT} (for Render port-scan only)`);
+  });
 
 // XiaoZhi MCP endpoint — set this via environment variable on Render
 const XIAOZHI_ENDPOINT = process.env.XIAOZHI_MCP_ENDPOINT;
