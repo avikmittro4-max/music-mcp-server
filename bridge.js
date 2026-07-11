@@ -46,6 +46,12 @@ const SAVED_SONGS = [
       "https://drive.google.com/file/d/1A_8FPZtsscBAV-jBA_ztCvbwKyi8SkRD/view?usp=drivesdk"
     ),
   },
+  {
+    names: ["পিয়া আইয়া না", "Piya Aiya Na", "Piya Aiyo Na"],
+    url: toDirectDriveLink(
+      "https://drive.google.com/file/d/1S3e8pm00gPpYhmG-EbQ42UibMnwlKnQS/view?usp=drivesdk"
+    ),
+  },
 ];
 
 function findSavedSong(query) {
