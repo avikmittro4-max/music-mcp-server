@@ -2,13 +2,14 @@
   "name": "music-search-mcp",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "bridge.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node bridge.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.9.0",
     "express": "^4.19.2",
+    "ws": "^8.18.0",
     "yt-search": "^2.11.1",
     "zod": "^3.23.8"
   }
