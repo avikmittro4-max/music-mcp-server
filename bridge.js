@@ -52,6 +52,18 @@ const SAVED_SONGS = [
       "https://drive.google.com/file/d/1S3e8pm00gPpYhmG-EbQ42UibMnwlKnQS/view?usp=drivesdk"
     ),
   },
+  {
+    names: ["কাহা গায়ি হো রাত", "Kaha Gayi Ho Raat", "Kaha Gayi Ho Rat"],
+    url: toDirectDriveLink(
+      "https://drive.google.com/file/d/1pWNE1XM54j2PiTFYRZkPB7KLAn7JhY2z/view?usp=drivesdk"
+    ),
+  },
+  {
+    names: ["কত রাত জাগা", "Koto Rat Jaga", "Kato Raat Jaga"],
+    url: toDirectDriveLink(
+      "https://drive.google.com/file/d/1m4-tl2ag6YBwOOhVuN6hE2KbPpnX0ccc/view?usp=drivesdk"
+    ),
+  },
 ];
 
 function findSavedSong(query) {
