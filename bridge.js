@@ -21,6 +21,9 @@ http
 // XiaoZhi MCP endpoint — set this via environment variable on Render
 const XIAOZHI_ENDPOINT = process.env.XIAOZHI_MCP_ENDPOINT;
 
+// Serper.dev API key for real-time web search
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
+
 if (!XIAOZHI_ENDPOINT) {
   console.error(
     "ERROR: XIAOZHI_MCP_ENDPOINT environment variable is not set. " +
@@ -181,6 +184,65 @@ function buildServer() {
           },
         ],
       };
+    }
+  );
+
+  server.registerTool(
+    "web_search",
+    {
+      title: "Web Search",
+      description:
+        "Search the web for current, real-time information — news, current office holders (e.g. prime ministers, presidents, CEOs), recent events, or anything that may have changed since the AI's training data. Use this whenever the user asks about current events or facts that could be outdated.",
+      inputSchema: {
+        query: z.string().describe("Search query, e.g. 'current prime minister of Bangladesh'"),
+      },
+    },
+    async ({ query }) => {
+      if (!SERPER_API_KEY) {
+        return {
+          content: [{ type: "text", text: "Web search is not configured (missing API key)." }],
+          isError: true,
+        };
+      }
+      try {
+        const res = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ q: query }),
+        });
+        const data = await res.json();
+
+        const parts = [];
+        if (data.answerBox) {
+          const ab = data.answerBox;
+          parts.push(`Answer: ${ab.answer || ab.snippet || ""}`);
+        }
+        if (data.knowledgeGraph) {
+          const kg = data.knowledgeGraph;
+          parts.push(`${kg.title}: ${kg.description || ""}`);
+        }
+        if (data.organic && data.organic.length > 0) {
+          const top = data.organic.slice(0, 3);
+          parts.push(
+            "Top results:\n" +
+              top.map((r, i) => `${i + 1}. ${r.title} — ${r.snippet || ""}`).join("\n")
+          );
+        }
+
+        if (parts.length === 0) {
+          return { content: [{ type: "text", text: `No results found for "${query}".` }] };
+        }
+
+        return { content: [{ type: "text", text: parts.join("\n\n") }] };
+      } catch (err) {
+        return {
+          content: [{ type: "text", text: `Search failed: ${err.message}` }],
+          isError: true,
+        };
+      }
     }
   );
 
