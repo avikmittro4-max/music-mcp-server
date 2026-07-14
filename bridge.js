@@ -44,25 +44,78 @@ function toDirectDriveLink(shareUrl) {
 
 const SAVED_SONGS = [
   {
-    names: ["বোঝেনা সে বোঝেনা", "Bojhena Se Bojhena", "Bojhena Se Bojhenaa", "Bujhena Se Bujhena"],
+    number: 1,
+    names: [
+      "বোঝেনা সে বোঝেনা",
+      "Bojhena Se Bojhena",
+      "Bojhena Se Bojhenaa",
+      "Bujhena Se Bujhena",
+      "১ নাম্বার গান",
+      "১ নং গান",
+      "গান ১",
+      "song 1",
+      "song one",
+      "number 1",
+      "1 no gaan",
+      "ekk no gaan",
+    ],
     url: toDirectDriveLink(
       "https://drive.google.com/file/d/1A_8FPZtsscBAV-jBA_ztCvbwKyi8SkRD/view?usp=drivesdk"
     ),
   },
   {
-    names: ["পিয়া আইয়া না", "Piya Aiya Na", "Piya Aiyo Na"],
+    number: 2,
+    names: [
+      "পিয়া আইয়া না",
+      "Piya Aiya Na",
+      "Piya Aiyo Na",
+      "২ নাম্বার গান",
+      "২ নং গান",
+      "গান ২",
+      "song 2",
+      "song two",
+      "number 2",
+      "2 no gaan",
+      "dui no gaan",
+    ],
     url: toDirectDriveLink(
       "https://drive.google.com/file/d/1S3e8pm00gPpYhmG-EbQ42UibMnwlKnQS/view?usp=drivesdk"
     ),
   },
   {
-    names: ["কাহা গায়ি হো রাত", "Kaha Gayi Ho Raat", "Kaha Gayi Ho Rat"],
+    number: 3,
+    names: [
+      "কাহা গায়ি হো রাত",
+      "Kaha Gayi Ho Raat",
+      "Kaha Gayi Ho Rat",
+      "৩ নাম্বার গান",
+      "৩ নং গান",
+      "গান ৩",
+      "song 3",
+      "song three",
+      "number 3",
+      "3 no gaan",
+      "tin no gaan",
+    ],
     url: toDirectDriveLink(
       "https://drive.google.com/file/d/1pWNE1XM54j2PiTFYRZkPB7KLAn7JhY2z/view?usp=drivesdk"
     ),
   },
   {
-    names: ["কত রাত জাগা", "Koto Rat Jaga", "Kato Raat Jaga"],
+    number: 4,
+    names: [
+      "কত রাত জাগা",
+      "Koto Rat Jaga",
+      "Kato Raat Jaga",
+      "৪ নাম্বার গান",
+      "৪ নং গান",
+      "গান ৪",
+      "song 4",
+      "song four",
+      "number 4",
+      "4 no gaan",
+      "char no gaan",
+    ],
     url: toDirectDriveLink(
       "https://drive.google.com/file/d/1m4-tl2ag6YBwOOhVuN6hE2KbPpnX0ccc/view?usp=drivesdk"
     ),
@@ -71,6 +124,15 @@ const SAVED_SONGS = [
 
 function findSavedSong(query) {
   const q = query.trim().toLowerCase();
+
+  // Direct number match, e.g. "1", "one", "song 1"
+  const digitMatch = q.match(/\d+/);
+  if (digitMatch) {
+    const num = parseInt(digitMatch[0], 10);
+    const byNumber = SAVED_SONGS.find((s) => s.number === num);
+    if (byNumber) return byNumber;
+  }
+
   for (const song of SAVED_SONGS) {
     for (const name of song.names) {
       if (name.toLowerCase().includes(q) || q.includes(name.toLowerCase())) {
@@ -159,9 +221,13 @@ function buildServer() {
     {
       title: "Play Saved Song",
       description:
-        "Play a song from the saved/uploaded playlist by name (Bangla or English). Use this FIRST before searching YouTube, since these are pre-approved songs the device can actually play.",
+        "Play a song from the saved/uploaded playlist by name (Bangla or English) OR by its number (1, 2, 3, 4...). Use this FIRST before searching YouTube, since these are pre-approved songs the device can actually play. If the user says a number like '1 no gaan' or 'song 1' or just '1', pass that number as the query.",
       inputSchema: {
-        query: z.string().describe("Song name in Bangla or English, e.g. 'Bojhena Se Bojhena' or 'বোঝেনা সে বোঝেনা'"),
+        query: z
+          .string()
+          .describe(
+            "Song name or number, e.g. 'Bojhena Se Bojhena', 'বোঝেনা সে বোঝেনা', '1', or 'song 1'"
+          ),
       },
     },
     async ({ query }) => {
@@ -171,7 +237,7 @@ function buildServer() {
           content: [
             {
               type: "text",
-              text: `"${query}" is not in the saved playlist yet. Try search_music to find it on YouTube instead.`,
+              text: `"${query}" is not in the saved playlist yet. Try search_music to find it on YouTube instead, or call list_saved_songs to see available songs and their numbers.`,
             },
           ],
         };
@@ -180,7 +246,28 @@ function buildServer() {
         content: [
           {
             type: "text",
-            text: `Playing saved song: ${song.names[0]}\nURL: ${song.url}`,
+            text: `Playing saved song #${song.number}: ${song.names[0]}\nURL: ${song.url}`,
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "list_saved_songs",
+    {
+      title: "List Saved Songs",
+      description:
+        "List all songs in the saved playlist along with their numbers, so the user can pick one by number (e.g. 'play song 1').",
+      inputSchema: {},
+    },
+    async () => {
+      const lines = SAVED_SONGS.map((s) => `${s.number}. ${s.names[0]}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Saved songs:\n${lines.join("\n")}\n\nSay the song number or name to play it.`,
           },
         ],
       };
