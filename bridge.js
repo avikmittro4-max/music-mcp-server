@@ -143,6 +143,16 @@ function findSavedSong(query) {
   return null;
 }
 
+// --- Simple in-memory notes/todo list ---
+// Note: this resets when the server restarts (Render free tier may restart
+// periodically). For persistent storage across restarts, this would need a
+// database — fine for now as a lightweight notes list.
+const NOTES = [];
+
+// --- Simple in-memory timers ---
+const TIMERS = [];
+let timerIdCounter = 1;
+
 function buildServer() {
   const server = new McpServer({
     name: "music-search-mcp",
@@ -330,6 +340,152 @@ function buildServer() {
           isError: true,
         };
       }
+    }
+  );
+
+  server.registerTool(
+    "add_note",
+    {
+      title: "Add Note",
+      description:
+        "Save a note or to-do item for the user to remember later. Use this when the user says things like 'note this down', 'remember this', 'নোট করে রাখো', or 'মনে রাখো'.",
+      inputSchema: {
+        text: z.string().describe("The note or reminder text to save, in the language the user spoke it"),
+      },
+    },
+    async ({ text }) => {
+      const note = {
+        id: NOTES.length + 1,
+        text: text.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      NOTES.push(note);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Saved note #${note.id}: "${note.text}"`,
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "list_notes",
+    {
+      title: "List Notes",
+      description:
+        "Read back all saved notes/to-do items. Use this when the user asks 'আমার নোট বলো', 'what did I ask you to remember', or similar.",
+      inputSchema: {},
+    },
+    async () => {
+      if (NOTES.length === 0) {
+        return { content: [{ type: "text", text: "There are no saved notes yet." }] };
+      }
+      const lines = NOTES.map((n) => `${n.id}. ${n.text}`);
+      return { content: [{ type: "text", text: `Saved notes:\n${lines.join("\n")}` }] };
+    }
+  );
+
+  server.registerTool(
+    "delete_note",
+    {
+      title: "Delete Note",
+      description:
+        "Delete a saved note by its number. Use this when the user says 'delete note 2' or 'নোট ২ মুছে দাও'.",
+      inputSchema: {
+        id: z.number().describe("The note number to delete"),
+      },
+    },
+    async ({ id }) => {
+      const idx = NOTES.findIndex((n) => n.id === id);
+      if (idx === -1) {
+        return { content: [{ type: "text", text: `No note found with number ${id}.` }] };
+      }
+      const [removed] = NOTES.splice(idx, 1);
+      return { content: [{ type: "text", text: `Deleted note #${removed.id}: "${removed.text}"` }] };
+    }
+  );
+
+  server.registerTool(
+    "set_timer",
+    {
+      title: "Set Timer",
+      description:
+        "Set a countdown timer for a number of minutes or seconds. Use this when the user says 'set a 10 minute timer', '১০ মিনিটের টাইমার দাও', or similar. Announce when it's created; when the user later asks to check timers, use check_timers to tell them the remaining time.",
+      inputSchema: {
+        duration_seconds: z.number().describe("Timer duration in seconds, e.g. 600 for 10 minutes"),
+        label: z.string().optional().describe("Optional label for what the timer is for, e.g. 'chai'"),
+      },
+    },
+    async ({ duration_seconds, label }) => {
+      const timer = {
+        id: timerIdCounter++,
+        label: label || null,
+        durationSeconds: duration_seconds,
+        endsAt: Date.now() + duration_seconds * 1000,
+      };
+      TIMERS.push(timer);
+      const mins = Math.floor(duration_seconds / 60);
+      const secs = duration_seconds % 60;
+      const durText = mins > 0 ? `${mins} min ${secs > 0 ? secs + " sec" : ""}`.trim() : `${secs} sec`;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Timer #${timer.id} set for ${durText}${label ? ` (${label})` : ""}.`,
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "check_timers",
+    {
+      title: "Check Timers",
+      description:
+        "Check all active timers and how much time is left on each. Use this when the user asks 'how much time is left', 'আর কত সময় বাকি', or similar. Timers that have finished will be reported as done.",
+      inputSchema: {},
+    },
+    async () => {
+      const now = Date.now();
+      // Clean up timers that finished more than 5 minutes ago
+      for (let i = TIMERS.length - 1; i >= 0; i--) {
+        if (now - TIMERS[i].endsAt > 5 * 60 * 1000) TIMERS.splice(i, 1);
+      }
+      if (TIMERS.length === 0) {
+        return { content: [{ type: "text", text: "There are no active timers." }] };
+      }
+      const lines = TIMERS.map((t) => {
+        const remaining = Math.round((t.endsAt - now) / 1000);
+        const name = t.label ? ` (${t.label})` : "";
+        if (remaining <= 0) return `Timer #${t.id}${name}: DONE`;
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        return `Timer #${t.id}${name}: ${mins}m ${secs}s remaining`;
+      });
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+  );
+
+  server.registerTool(
+    "cancel_timer",
+    {
+      title: "Cancel Timer",
+      description: "Cancel a timer by its number. Use this when the user says 'cancel timer 1' or 'টাইমার বাতিল করো'.",
+      inputSchema: {
+        id: z.number().describe("The timer number to cancel"),
+      },
+    },
+    async ({ id }) => {
+      const idx = TIMERS.findIndex((t) => t.id === id);
+      if (idx === -1) {
+        return { content: [{ type: "text", text: `No timer found with number ${id}.` }] };
+      }
+      TIMERS.splice(idx, 1);
+      return { content: [{ type: "text", text: `Timer #${id} cancelled.` }] };
     }
   );
 
