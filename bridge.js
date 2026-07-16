@@ -153,6 +153,10 @@ const NOTES = [];
 const TIMERS = [];
 let timerIdCounter = 1;
 
+// --- Simple in-memory alarms (clock-time based) ---
+const ALARMS = [];
+let alarmIdCounter = 1;
+
 function buildServer() {
   const server = new McpServer({
     name: "music-search-mcp",
@@ -486,6 +490,93 @@ function buildServer() {
       }
       TIMERS.splice(idx, 1);
       return { content: [{ type: "text", text: `Timer #${id} cancelled.` }] };
+    }
+  );
+
+  server.registerTool(
+    "set_alarm",
+    {
+      title: "Set Alarm",
+      description:
+        "Set an alarm for a specific clock time (hour and minute, 24-hour format). Use this when the user says 'wake me up at 7am', 'সকাল ৭টায় অ্যালার্ম দাও', or similar. If the time has already passed today, it will be set for tomorrow.",
+      inputSchema: {
+        hour: z.number().describe("Hour in 24-hour format, 0-23"),
+        minute: z.number().describe("Minute, 0-59"),
+        label: z.string().optional().describe("Optional label, e.g. 'ঘুম থেকে ওঠা'"),
+      },
+    },
+    async ({ hour, minute, label }) => {
+      const now = new Date();
+      const alarmTime = new Date(now);
+      alarmTime.setHours(hour, minute, 0, 0);
+      if (alarmTime.getTime() <= now.getTime()) {
+        alarmTime.setDate(alarmTime.getDate() + 1);
+      }
+      const alarm = {
+        id: alarmIdCounter++,
+        hour,
+        minute,
+        label: label || null,
+        triggersAt: alarmTime.getTime(),
+      };
+      ALARMS.push(alarm);
+      const timeStr = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      const dayText = alarmTime.getDate() !== now.getDate() ? "tomorrow" : "today";
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Alarm #${alarm.id} set for ${timeStr} ${dayText}${label ? ` (${label})` : ""}.`,
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "check_alarms",
+    {
+      title: "Check Alarms",
+      description:
+        "List all upcoming alarms and how much time is left until each. Use this when the user asks 'what alarms do I have', 'আমার অ্যালার্ম কী কী আছে', or similar.",
+      inputSchema: {},
+    },
+    async () => {
+      const now = Date.now();
+      // Remove alarms more than 5 minutes past due (assume acknowledged)
+      for (let i = ALARMS.length - 1; i >= 0; i--) {
+        if (now - ALARMS[i].triggersAt > 5 * 60 * 1000) ALARMS.splice(i, 1);
+      }
+      if (ALARMS.length === 0) {
+        return { content: [{ type: "text", text: "There are no alarms set." }] };
+      }
+      const lines = ALARMS.map((a) => {
+        const timeStr = `${String(a.hour).padStart(2, "0")}:${String(a.minute).padStart(2, "0")}`;
+        const name = a.label ? ` (${a.label})` : "";
+        const remainingMin = Math.round((a.triggersAt - now) / 60000);
+        const status = remainingMin <= 0 ? "DUE NOW" : `in ${remainingMin} min`;
+        return `Alarm #${a.id} at ${timeStr}${name} — ${status}`;
+      });
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    }
+  );
+
+  server.registerTool(
+    "cancel_alarm",
+    {
+      title: "Cancel Alarm",
+      description: "Cancel an alarm by its number. Use this when the user says 'cancel alarm 1' or 'অ্যালার্ম বাতিল করো'.",
+      inputSchema: {
+        id: z.number().describe("The alarm number to cancel"),
+      },
+    },
+    async ({ id }) => {
+      const idx = ALARMS.findIndex((a) => a.id === id);
+      if (idx === -1) {
+        return { content: [{ type: "text", text: `No alarm found with number ${id}.` }] };
+      }
+      ALARMS.splice(idx, 1);
+      return { content: [{ type: "text", text: `Alarm #${id} cancelled.` }] };
     }
   );
 
