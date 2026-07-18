@@ -53,81 +53,24 @@ const SAVED_SONGS = [
   {
     number: 1,
     names: [
-      "বোঝেনা সে বোঝেনা",
-      "Bojhena Se Bojhena",
-      "Bojhena Se Bojhenaa",
-      "Bujhena Se Bujhena",
-      "১ নাম্বার গান",
+      "Kaha Gayi Ho Raat",
+      "Kaha Gayi Ho Rat",
+      "কাহা গয়ি হো রাত",
+      "কাহা গাই হো রাত",
+      "১ নম্বর গান",
       "১ নং গান",
       "গান ১",
       "song 1",
       "song one",
       "number 1",
       "1 no gaan",
-      "ekk no gaan",
+      "ek no gaan",
     ],
     url: toDirectDriveLink(
-      "https://drive.google.com/file/d/1A_8FPZtsscBAV-jBA_ztCvbwKyi8SkRD/view?usp=drivesdk"
+      "https://drive.google.com/file/d/10cNg54VPX5lPIq_TY-w2DPSeZPL9oVim/view?usp=drivesdk"
     ),
   },
-  {
-    number: 2,
-    names: [
-      "পিয়া আইয়া না",
-      "Piya Aiya Na",
-      "Piya Aiyo Na",
-      "২ নাম্বার গান",
-      "২ নং গান",
-      "গান ২",
-      "song 2",
-      "song two",
-      "number 2",
-      "2 no gaan",
-      "dui no gaan",
-    ],
-    url: toDirectDriveLink(
-      "https://drive.google.com/file/d/1S3e8pm00gPpYhmG-EbQ42UibMnwlKnQS/view?usp=drivesdk"
-    ),
-  },
-  {
-    number: 3,
-    names: [
-      "কাহা গায়ি হো রাত",
-      "Kaha Gayi Ho Raat",
-      "Kaha Gayi Ho Rat",
-      "৩ নাম্বার গান",
-      "৩ নং গান",
-      "গান ৩",
-      "song 3",
-      "song three",
-      "number 3",
-      "3 no gaan",
-      "tin no gaan",
-    ],
-    url: toDirectDriveLink(
-      "https://drive.google.com/file/d/1pWNE1XM54j2PiTFYRZkPB7KLAn7JhY2z/view?usp=drivesdk"
-    ),
-  },
-  {
-    number: 4,
-    names: [
-      "কত রাত জাগা",
-      "Koto Rat Jaga",
-      "Kato Raat Jaga",
-      "৪ নাম্বার গান",
-      "৪ নং গান",
-      "গান ৪",
-      "song 4",
-      "song four",
-      "number 4",
-      "4 no gaan",
-      "char no gaan",
-    ],
-    url: toDirectDriveLink(
-      "https://drive.google.com/file/d/1m4-tl2ag6YBwOOhVuN6hE2KbPpnX0ccc/view?usp=drivesdk"
-    ),
-  },
-];
+],
 
 function findSavedSong(query) {
   const q = query.trim().toLowerCase();
